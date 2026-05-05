@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  api:
+    build: . 
+    container_name: nutri-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://nutri_user:nutri_password@db:5432/nutri_db"
+    depends_on:
+      db:
+        condition: service_healthy 
+    volumes:
+      - ./src:/app/src
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine 
+    container_name: nutri-db
+    environment:
+      POSTGRES_DB: nutri_db
+      POSTGRES_USER: nutri_user
+      POSTGRES_PASSWORD: nutri_password
+      PGDATA: /var/lib/postgresql/data/pgdata 
+    ports:
+      - "5432:5432" 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutri_user -d nutri_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: nutri-postgres-data
